@@ -95,9 +95,9 @@ const loadMovies = async () => {
 
 const showActors = async (item) => {
   try {
-    movieActors.value = await dbOperations.getMovieActors(item.raw.id);
+    movieActors.value = await dbOperations.getMovieActors(item.id);
     showActorsDialog.value = true;
-    emit('select-movie', item.raw.id);
+    emit('select-movie', item.id);
   } catch (error) {
     console.error('Fehler beim Laden der Schauspieler:', error);
   }
@@ -116,7 +116,7 @@ const confirmDelete = (item) => {
 const deleteMovieConfirmed = async () => {
   try {
     if (movieToDelete.value) {
-      await dbOperations.deleteMovie(movieToDelete.value.raw.id);
+      await dbOperations.deleteMovie(movieToDelete.value.id);
       await loadMovies();
     }
     deleteDialog.value = false;

@@ -56,9 +56,9 @@ const editedActor = ref({
 //MUSS NOCH GEMACHT WERDEN/ funktiponiert noch nicht
 const editActor = (item) => {
   editedActor.value = {
-    firstName: item.raw.firstName,
-    lastName: item.raw.lastName,
-    id: item.raw.id
+    firstName: item.firstName,
+    lastName: item.lastName,
+    id: item.id
   };
   showDialog.value = true;
 };
@@ -73,7 +73,7 @@ const saveActor = async () => {
 };
 
 const deleteActor = async (item) => {
-  await dbOperations.deleteActor(item.raw.id);
+  await dbOperations.deleteActor(item.id);
   await loadActors();
 };
 
