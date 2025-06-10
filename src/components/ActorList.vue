@@ -18,12 +18,26 @@
       <v-btn
           color="error"
           size="small"
-          @click="deleteActor(item)"
+          @click="confirmDelete(item)"
       >
         Löschen
       </v-btn>
     </template>
   </v-data-table>
+
+  <v-dialog v-model="deleteDialog" max-width="400px">
+    <v-card>
+      <v-card-title>Schauspieler löschen</v-card-title>
+      <v-card-text>
+        Möchten Sie diesen Schauspieler wirklich löschen?
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="primary" @click="deleteDialog = false">Abbrechen</v-btn>
+        <v-btn color="error" @click="deleteActorConfirmed">Löschen</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -31,6 +45,8 @@ import { ref, onMounted } from 'vue';
 import { dbOperations } from '../db/indexedDb';
 
 const actors = ref([]);
+const deleteDialog = ref(false);
+const ActorToDelete = ref(null);
 
 const headers = [
   { title: 'Vorname', key: 'firstName' },
@@ -72,9 +88,22 @@ const saveActor = async () => {
   }
 };
 
-const deleteActor = async (item) => {
-  await dbOperations.deleteActor(item.id);
-  await loadActors();
+const confirmDelete = (item) => {
+  ActorToDelete.value = item;
+  deleteDialog.value = true;
+};
+
+const deleteActorConfirmed = async () => {
+  try {
+    if (ActorToDelete.value) {
+      await dbOperations.deleteActor(ActorToDelete.value.id);
+      await loadActors();
+    }
+    deleteDialog.value = false;
+    ActorToDelete.value = null;
+  } catch (error) {
+    console.error('Fehler beim Löschen des Films:', error);
+  }
 };
 
 
