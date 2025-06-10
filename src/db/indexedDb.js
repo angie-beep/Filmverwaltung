@@ -77,6 +77,49 @@ export const dbOperations = {
         }
     },
 
+    async getMovie(id) {
+        try {
+            const db = await getDB();
+            return await db.get('movies', id);
+        } catch (error) {
+            console.error('Fehler beim Abrufen des Films:', error);
+            return null;
+        }
+    },
+
+    async updateMovie(movie) {
+        try {
+            const db = await getDB();
+            const tx = db.transaction('movies', 'readwrite');
+            const store = tx.objectStore('movies');
+            await store.put({
+                id: movie.id,
+                title: movie.title,
+                year: movie.year,
+                genre: movie.genre
+            });
+            await tx.done;
+            // Beziehungen aktualisieren
+            if (Array.isArray(movie.actors)) {
+                // Erst alte Beziehungen löschen
+                const relTx = db.transaction('movie_actors', 'readwrite');
+                const relStore = relTx.objectStore('movie_actors');
+                const oldRelations = await relStore.index('movieId').getAll(movie.id);
+                for (const rel of oldRelations) {
+                    await relStore.delete([rel.movieId, rel.actorId]);
+                }
+                // Neue Beziehungen hinzufügen
+                for (const actorId of movie.actors) {
+                    await relStore.add({ movieId: movie.id, actorId });
+                }
+                await relTx.done;
+            }
+            console.log('Film aktualisiert:', movie.id);
+        } catch (error) {
+            console.error('Fehler beim Aktualisieren des Films:', error);
+            throw error;
+        }
+    },
 
     async addActor(actor) {
         try {
@@ -103,6 +146,34 @@ export const dbOperations = {
         } catch (error) {
             console.error('Fehler beim Abrufen der Schauspieler:', error);
             return [];
+        }
+    },
+
+    async getActor(id) {
+        try {
+            const db = await getDB();
+            return await db.get('actors', id);
+        } catch (error) {
+            console.error('Fehler beim Abrufen des Schauspielers:', error);
+            return null;
+        }
+    },
+
+    async updateActor(actor) {
+        try {
+            const db = await getDB();
+            const tx = db.transaction('actors', 'readwrite');
+            const store = tx.objectStore('actors');
+            await store.put({
+                id: actor.id,
+                firstName: actor.firstName,
+                lastName: actor.lastName
+            });
+            await tx.done;
+            console.log('Schauspieler aktualisiert:', actor.id);
+        } catch (error) {
+            console.error('Fehler beim Aktualisieren des Schauspielers:', error);
+            throw error;
         }
     },
 

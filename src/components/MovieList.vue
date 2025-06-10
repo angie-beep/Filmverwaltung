@@ -1,4 +1,3 @@
-
 <template>
   <v-data-table
       :headers="headers"
@@ -33,7 +32,6 @@
     </template>
   </v-data-table>
 
-  <!-- Dialog für Schauspieler anzeigen -->
   <v-dialog v-model="showActorsDialog" max-width="500px">
     <v-card>
       <v-card-title>Schauspieler im Film</v-card-title>
@@ -50,6 +48,13 @@
     </v-card>
   </v-dialog>
 
+  <v-dialog v-model="showEditDialog" max-width="600px">
+    <MovieForm
+      v-if="showEditDialog"
+      :movie-id="editedMovieId"
+      @save="onMovieSaved"
+    />
+  </v-dialog>
 
   <v-dialog v-model="deleteDialog" max-width="400px">
     <v-card>
@@ -69,6 +74,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { dbOperations } from '../db/indexedDb';
+import MovieForm from './MovieForm.vue';
 
 const emit = defineEmits(['select-movie']);
 
@@ -77,6 +83,9 @@ const movieActors = ref([]);
 const showActorsDialog = ref(false);
 const deleteDialog = ref(false);
 const movieToDelete = ref(null);
+
+const showEditDialog = ref(false);
+const editedMovieId = ref(null);
 
 const headers = [
   { title: 'Titel', key: 'title' },
@@ -103,9 +112,15 @@ const showActors = async (item) => {
   }
 };
 
-//MUSS NOCH GEMACHT WERDEN
 const editMovie = (item) => {
+  editedMovieId.value = item.id;
+  showEditDialog.value = true;
+};
 
+const onMovieSaved = async () => {
+  showEditDialog.value = false;
+  editedMovieId.value = null;
+  await loadMovies();
 };
 
 const confirmDelete = (item) => {

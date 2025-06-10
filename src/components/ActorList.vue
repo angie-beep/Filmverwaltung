@@ -25,6 +25,15 @@
     </template>
   </v-data-table>
 
+
+  <v-dialog v-model="showEditDialog" max-width="400px">
+    <ActorForm
+        v-if="showEditDialog"
+        :actor-id="editedActorId"
+        @save="onActorSaved"
+    />
+  </v-dialog>
+
   <v-dialog v-model="deleteDialog" max-width="400px">
     <v-card>
       <v-card-title>Schauspieler löschen</v-card-title>
@@ -43,10 +52,14 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { dbOperations } from '../db/indexedDb';
+import ActorForm from "@/components/ActorForm.vue";
 
 const actors = ref([]);
 const deleteDialog = ref(false);
 const ActorToDelete = ref(null);
+
+const showEditDialog = ref(false);
+const editedActorId = ref(null);
 
 const headers = [
   { title: 'Vorname', key: 'firstName' },
@@ -62,31 +75,18 @@ const loadActors = async () => {
   actors.value = await dbOperations.getActors();
 };
 
-const showDialog = ref(false);
-const editedActor = ref({
-  firstName: '',
-  lastName: '',
-  id: null
-});
 
-//MUSS NOCH GEMACHT WERDEN/ funktiponiert noch nicht
 const editActor = (item) => {
-  editedActor.value = {
-    firstName: item.firstName,
-    lastName: item.lastName,
-    id: item.id
-  };
-  showDialog.value = true;
+  editedActorId.value = item.id;
+  showEditDialog.value = true;
 };
 
-
-const saveActor = async () => {
-  if (editedActor.value.id) {
-    await dbOperations.updateActor(editedActor.value);
-    await loadActors();
-    showDialog.value = false;
-  }
+const onActorSaved = async () => {
+  showEditDialog.value = false;
+  editedActorId.value = null;
+  await loadActors();
 };
+
 
 const confirmDelete = (item) => {
   ActorToDelete.value = item;
