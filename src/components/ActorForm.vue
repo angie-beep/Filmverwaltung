@@ -44,6 +44,10 @@ const actor = ref({
   lastName: ''
 });
 
+const reloadPage = () => {
+  window.location.reload();
+};
+
 onMounted(async () => {
   try {
     if (props.actorId) {
@@ -70,7 +74,7 @@ const saveActor = async () => {
     } else {
       await dbOperations.addActor(actor.value);
     }
-
+    reloadPage();
     emit('save');
   } catch (error) {
     console.error('Fehler beim Speichern des Schauspielers:', error);

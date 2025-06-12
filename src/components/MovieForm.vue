@@ -61,6 +61,10 @@ const movie = ref({
   actors: []
 });
 
+const reloadPage = () => {
+  window.location.reload();
+};
+
 onMounted(async () => {
   try {
     actors.value = await dbOperations.getActors();
@@ -98,7 +102,7 @@ const saveMovie = async () => {
         }
       }
     }
-    
+    reloadPage();
     emit('save');
   } catch (error) {
     console.error('Fehler beim Speichern des Films:', error);

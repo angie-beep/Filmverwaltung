@@ -8,7 +8,6 @@ let db = null;
 export const initDB = async () => {
     db = await openDB(dbName, dbVersion, {
         upgrade(db) {
-            // Movies Store
             if (!db.objectStoreNames.contains('movies')) {
                 const movieStore = db.createObjectStore('movies', {
                     keyPath: 'id',
@@ -17,7 +16,6 @@ export const initDB = async () => {
                 movieStore.createIndex('title', 'title', { unique: false });
             }
 
-            // Actors Store
             if (!db.objectStoreNames.contains('actors')) {
                 const actorStore = db.createObjectStore('actors', {
                     keyPath: 'id',
@@ -26,7 +24,6 @@ export const initDB = async () => {
                 actorStore.createIndex('lastName', 'lastName', { unique: false });
             }
 
-            // Movie-Actor Relationships Store
             if (!db.objectStoreNames.contains('movie_actors')) {
                 const relationStore = db.createObjectStore('movie_actors', {
                     keyPath: ['movieId', 'actorId']
@@ -36,6 +33,39 @@ export const initDB = async () => {
             }
         }
     });
+
+    //Beispiel-Daten
+    const actorsCount = await db.count('actors');
+    const moviesCount = await db.count('movies');
+    if (actorsCount === 0 && moviesCount === 0) {
+
+        const actorTx = db.transaction('actors', 'readwrite');
+        const actorStore = actorTx.objectStore('actors');
+        const actor1Id = await actorStore.add({ firstName: 'Tom', lastName: 'Hanks' });
+        const actor2Id = await actorStore.add({ firstName: 'Emma', lastName: 'Watson' });
+        const actor3Id = await actorStore.add({ firstName: 'Leonardo', lastName: 'DiCaprio' });
+        const actor4Id = await actorStore.add({firstName: 'Joseph', lastName: 'Gordon-Levitt'});
+        await actorTx.done;
+
+
+        const movieTx = db.transaction('movies', 'readwrite');
+        const movieStore = movieTx.objectStore('movies');
+        const movie1Id = await movieStore.add({ title: 'Forrest Gump', year: 1994, genre: 'Drama' });
+        const movie2Id = await movieStore.add({ title: 'Inception', year: 2010, genre: 'Sci-Fi' });
+        const movie3Id = await movieStore.add({ title: 'Harry Potter', year: 2001, genre: 'Fantasy' });
+        await movieTx.done;
+
+
+        const relTx = db.transaction('movie_actors', 'readwrite');
+        const relStore = relTx.objectStore('movie_actors');
+        await relStore.add({ movieId: movie1Id, actorId: actor1Id });
+        await relStore.add({ movieId: movie2Id, actorId: actor3Id });
+        await relStore.add({ movieId: movie2Id, actorId: actor4Id });
+        await relStore.add({ movieId: movie3Id, actorId: actor2Id });
+        await relTx.done;
+    }
+
+
     return db;
 };
 
@@ -99,16 +129,13 @@ export const dbOperations = {
                 genre: movie.genre
             });
             await tx.done;
-            // Beziehungen aktualisieren
             if (Array.isArray(movie.actors)) {
-                // Erst alte Beziehungen löschen
                 const relTx = db.transaction('movie_actors', 'readwrite');
                 const relStore = relTx.objectStore('movie_actors');
                 const oldRelations = await relStore.index('movieId').getAll(movie.id);
                 for (const rel of oldRelations) {
                     await relStore.delete([rel.movieId, rel.actorId]);
                 }
-                // Neue Beziehungen hinzufügen
                 for (const actorId of movie.actors) {
                     await relStore.add({ movieId: movie.id, actorId });
                 }
@@ -216,7 +243,6 @@ export const dbOperations = {
         }
     },
 
-    //Funktionieren nicht richtig, muss noch EDIT operationen hinzufügen.
     async deleteMovie(id) {
         try {
             const db = await getDB();
