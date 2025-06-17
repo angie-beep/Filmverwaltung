@@ -26,7 +26,7 @@
           :items="actors"
           label="Schauspieler"
           multiple
-          item-title="firstName"
+          :item-title="item => `${item.firstName} ${item.lastName}`"
           item-value="id"
           persistent-hint
         ></v-select>
