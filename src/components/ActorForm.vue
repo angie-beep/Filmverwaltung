@@ -27,7 +27,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { dbOperations } from '../db/indexedDb';
+import { useActorStore } from '../stores/ActorStore';
 
 const props = defineProps({
   actorId: {
@@ -37,6 +37,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['save']);
+const actorStore = useActorStore();
 
 const editMode = ref(false);
 const actor = ref({
@@ -44,16 +45,16 @@ const actor = ref({
   lastName: ''
 });
 
-const reloadPage = () => {
-  window.location.reload();
-};
+
 
 onMounted(async () => {
   try {
     if (props.actorId) {
       editMode.value = true;
-      const actorData = await dbOperations.getActor(props.actorId);
-      actor.value = { ...actorData };
+      const existing = actorStore.getActor(props.actorId);
+      if (existing) {
+        actor.value = { ...existing };
+      }
     }
   } catch (error) {
     console.error('Fehler beim Laden des Schauspielers:', error);
@@ -70,12 +71,13 @@ const saveActor = async () => {
     console.log('Speichere Schauspieler:', actor.value);
 
     if (editMode.value) {
-      await dbOperations.updateActor(actor.value);
+      actorStore.updateActor(actor.value);
     } else {
-      await dbOperations.addActor(actor.value);
+      actorStore.addActor(actor.value);
     }
-    reloadPage();
+
     emit('save');
+
   } catch (error) {
     console.error('Fehler beim Speichern des Schauspielers:', error);
     alert('Fehler beim Speichern des Schauspielers');

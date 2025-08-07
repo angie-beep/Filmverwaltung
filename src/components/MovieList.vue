@@ -73,10 +73,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { dbOperations } from '../db/indexedDb';
+import { useMovieStore } from '../stores/MovieStore';
+import { useActorMovieStore } from '../stores/ActorMovieStore';
+import { useActorStore } from '../stores/ActorStore';
 import MovieForm from './MovieForm.vue';
 
-const emit = defineEmits(['select-movie']);
+const movieStore = useMovieStore();
+const actorMovieStore = useActorMovieStore();
+const actorStore = useActorStore();
+
 
 const movies = ref([]);
 const movieActors = ref([]);
@@ -95,47 +100,48 @@ const headers = [
 ];
 
 onMounted(async () => {
-  await loadMovies();
+  movieStore.fetchMovies();
+  actorStore.fetchActors();
+  movies.value = movieStore.movies;
 });
 
-const loadMovies = async () => {
-  movies.value = await dbOperations.getMovies();
-};
 
-const showActors = async (item) => {
+const showActors = async (movie) => {
   try {
-    movieActors.value = await dbOperations.getMovieActors(item.id);
+    const actorIds = actorMovieStore.getActorsForMovie(movie.id);
+    movieActors.value = actorIds.map(id => actorStore.getActor(id)).filter(Boolean);
     showActorsDialog.value = true;
-    emit('select-movie', item.id);
   } catch (error) {
     console.error('Fehler beim Laden der Schauspieler:', error);
   }
 };
 
-const editMovie = (item) => {
-  editedMovieId.value = item.id;
+const editMovie = (movie) => {
+  editedMovieId.value = movie.id;
   showEditDialog.value = true;
 };
 
 const onMovieSaved = async () => {
   showEditDialog.value = false;
   editedMovieId.value = null;
-  await loadMovies();
+  movieStore.fetchMovies();
 };
 
-const confirmDelete = (item) => {
-  movieToDelete.value = item;
+const confirmDelete = (movie) => {
+  movieToDelete.value = movie;
   deleteDialog.value = true;
 };
 
 const deleteMovieConfirmed = async () => {
   try {
     if (movieToDelete.value) {
-      await dbOperations.deleteMovie(movieToDelete.value.id);
-      await loadMovies();
+      actorMovieStore.deleteRelationsByMovie(movieToDelete.value.id);
+      movieStore.deleteMovie(movieToDelete.value.id);
     }
     deleteDialog.value = false;
     movieToDelete.value = null;
+    movieStore.fetchMovies();
+    movies.value = movieStore.movies;
   } catch (error) {
     console.error('Fehler beim Löschen des Films:', error);
   }

@@ -51,10 +51,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { dbOperations } from '../db/indexedDb';
-import ActorForm from "@/components/ActorForm.vue";
+import { useActorStore } from "../stores/ActorStore";
+import { storeToRefs } from "pinia";
+import ActorForm from "./ActorForm.vue";
+import {seedAll} from "@/utils/seedData.js";
 
-const actors = ref([]);
+const actorStore = useActorStore();
+const { actors } = storeToRefs(actorStore);
+
 const deleteDialog = ref(false);
 const ActorToDelete = ref(null);
 
@@ -67,13 +71,9 @@ const headers = [
   { title: 'Aktionen', key: 'actions', sortable: false }
 ];
 
-onMounted(async () => {
-  await loadActors();
+onMounted(() => {
+  actorStore.fetchActors();
 });
-
-const loadActors = async () => {
-  actors.value = await dbOperations.getActors();
-};
 
 
 const editActor = (item) => {
@@ -81,10 +81,9 @@ const editActor = (item) => {
   showEditDialog.value = true;
 };
 
-const onActorSaved = async () => {
+const onActorSaved = () => {
   showEditDialog.value = false;
   editedActorId.value = null;
-  await loadActors();
 };
 
 
@@ -96,8 +95,8 @@ const confirmDelete = (item) => {
 const deleteActorConfirmed = async () => {
   try {
     if (ActorToDelete.value) {
-      await dbOperations.deleteActor(ActorToDelete.value.id);
-      await loadActors();
+      actorStore.deleteActor(ActorToDelete.value.id);
+      await actorStore.fetchActors();
     }
     deleteDialog.value = false;
     ActorToDelete.value = null;

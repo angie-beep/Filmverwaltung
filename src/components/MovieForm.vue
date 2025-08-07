@@ -41,7 +41,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { dbOperations } from '../db/indexedDb';
+import { useActorStore } from '../stores/ActorStore';
+import { useMovieStore } from '../stores/MovieStore';
+import { useActorMovieStore } from '../stores/ActorMovieStore';
 
 const props = defineProps({
   movieId: {
@@ -52,6 +54,10 @@ const props = defineProps({
 
 const emit = defineEmits(['save']);
 
+const actorStore = useActorStore();
+const movieStore = useMovieStore();
+const actorMovieStore = useActorMovieStore();
+
 const editMode = ref(false);
 const actors = ref([]);
 const movie = ref({
@@ -61,19 +67,18 @@ const movie = ref({
   actors: []
 });
 
-const reloadPage = () => {
-  window.location.reload();
-};
-
 onMounted(async () => {
   try {
-    actors.value = await dbOperations.getActors();
-    console.log('Verfügbare Schauspieler:', actors.value);
-    
+    actorStore.fetchActors();
+    actors.value = actorStore.actors;
+
     if (props.movieId) {
       editMode.value = true;
-      const movieData = await dbOperations.getMovie(props.movieId);
-      movie.value = { ...movieData };
+      const existing = movieStore.getMovie(props.movieId);
+      if (existing) {
+        movie.value = { ...existing };
+        movie.value.actors = actorMovieStore.getActorsForMovie(existing.id);
+      }
     }
   } catch (error) {
     console.error('Fehler beim Laden der Daten:', error);
@@ -90,19 +95,19 @@ const saveMovie = async () => {
     console.log('Speichere Film:', movie.value);
     
     if (editMode.value) {
-      await dbOperations.updateMovie(movie.value);
+      movieStore.updateMovie(movie.value);
     } else {
-      const newMovieId = await dbOperations.addMovie(movie.value);
-      console.log('Neuer Film ID:', newMovieId);
-      
-
-      if (movie.value.actors && movie.value.actors.length > 0) {
-        for (const actorId of movie.value.actors) {
-          await dbOperations.addMovieActor(newMovieId, actorId);
-        }
-      }
+      const id = movieStore.addMovie({
+        title: movie.value.title,
+        year: movie.value.year,
+        genre: movie.value.genre
+      });
+      movie.value.id = id;
     }
-    reloadPage();
+    actorMovieStore.deleteRelationsByMovie(movie.value.id);
+    for (const actorId of movie.value.actors) {
+      actorMovieStore.addRelation(movie.value.id, actorId);
+    }
     emit('save');
   } catch (error) {
     console.error('Fehler beim Speichern des Films:', error);
